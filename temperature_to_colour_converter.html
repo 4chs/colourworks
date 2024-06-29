@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature to Colour Converter</title>
+    <style>
+        .color-square {
+            width: 100px;
+            height: 100px;
+            margin-top: 10px;
+        }
+		
+        body {
+            font-family: Courier, sans-serif;
+            text-align: left;
+            margin: 50px;
+        }
+        .slider {
+			max-width: 400px;
+			width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h1>Temperature to Colour Converter</h1>
+    <label for="temperature">Temperature: </label>
+    <input type="number" id="temperature" name="temperature" value="5000" min="500" max="30000"> K
+	<p></p>
+    <input type="range" id="temperature-slider" min="500" max="30000" value="5000" class="slider" >
+    
+    <h3>Color Values</h3>
+    <p>RGB <span id="rgb"></span></p>
+    <p>HSV <span id="hsv"></span></p>
+    <p>HSL <span id="hsl"></span></p>
+	<h3>Normalised values:</h3>
+    <p>RGB <span id="rgb-normalised"></span></p>
+    <p>HSV <span id="hsv-normalised"></span></p>
+    <p>HSL <span id="hsl-normalised"></span></p>
+    <p>HEX <span id="hex"></span></p>
+    <div class="color-square" id="color-square"></div>
+
+    <script>
+        document.getElementById('temperature').addEventListener('input', updateColor);
+        document.getElementById('temperature-slider').addEventListener('input', syncTemperature);
+
+        function syncTemperature() {
+            const tempValue = document.getElementById('temperature-slider').value;
+            document.getElementById('temperature').value = tempValue;
+            updateColor();
+        }
+
+        function updateColor() {
+            const temp = parseInt(document.getElementById('temperature').value);
+            const color = temperatureToColor(temp);
+
+            document.getElementById('rgb').innerText = `${color.r}, ${color.g}, ${color.b}`;
+            document.getElementById('rgb-normalised').innerText = `${(color.r/255).toFixed(3)}, ${(color.g/255).toFixed(3)}, ${(color.b/255).toFixed(3)}`;
+            document.getElementById('hsv').innerText = `${color.hsv.h.toFixed(0)}, ${color.hsv.s.toFixed(0)}, ${color.hsv.v.toFixed(0)}`;
+            document.getElementById('hsv-normalised').innerText = `${(color.hsv.h/360).toFixed(3)}, ${(color.hsv.s/100).toFixed(3)}, ${(color.hsv.v/100).toFixed(3)}`;
+            document.getElementById('hsl').innerText = `${color.hsl.h.toFixed(0)}, ${color.hsl.s.toFixed(0)}, ${color.hsl.l.toFixed(0)}`;
+            document.getElementById('hsl-normalised').innerText = `${(color.hsl.h/360).toFixed(3)}, ${(color.hsl.s/100).toFixed(3)}, ${(color.hsl.l/100).toFixed(3)}`;
+            document.getElementById('hex').innerText = `#${color.hex}`;
+            document.getElementById('color-square').style.backgroundColor = `#${color.hex}`;
+        }
+
+        function temperatureToColor(kelvin) {
+            const temp = kelvin / 100;
+            let red, green, blue;
+
+            if (temp <= 66) {
+                red = 255;
+                green = Math.min(99.4708025861 * Math.log(temp) - 161.1195681661, 255);
+                blue = temp <= 19 ? 0 : Math.min(138.5177312231 * Math.log(temp - 10) - 305.0447927307, 255);
+            } else {
+                red = Math.min(329.698727446 * Math.pow(temp - 60, -0.1332047592), 255);
+                green = Math.min(288.1221695283 * Math.pow(temp - 60, -0.0755148492), 255);
+                blue = 255;
+            }
+
+            red = Math.max(0, Math.min(255, Math.round(red)));
+            green = Math.max(0, Math.min(255, Math.round(green)));
+            blue = Math.max(0, Math.min(255, Math.round(blue)));
+
+            const rgb = { r: red, g: green, b: blue };
+            const hex = rgbToHex(red, green, blue);
+            const hsv = rgbToHsv(red, green, blue);
+            const hsl = rgbToHsl(red, green, blue);
+
+            return { ...rgb, hex, hsv, hsl };
+        }
+
+        function rgbToHex(r, g, b) {
+            return [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+        }
+
+        function rgbToHsv(r, g, b) {
+            let v = Math.max(r, g, b), c = v - Math.min(r, g, b);
+            let h = c && (v == r ? (g - b) / c : v == g ? 2 + (b - r) / c : 4 + (r - g) / c);
+            return { h: 60 * (h < 0 ? h + 6 : h), s: v && c / v * 100, v: v / 255 * 100 };
+        }
+		
+		function rgbToHsl(r, g, b) {
+			r /= 255;
+			g /= 255;
+			b /= 255;
+			let max = Math.max(r, g, b);
+			let min = Math.min(r, g, b);
+			let h, s, l = (max + min) / 2;
+
+			if (max == min) {
+				h = s = 0; // achromatic
+			} else {
+				let d = max - min;
+				s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+				switch (max) {
+					case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+					case g: h = (b - r) / d + 2; break;
+					case b: h = (r - g) / d + 4; break;
+				}
+
+				h /= 6;
+			}
+
+			return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+		}
+        updateColor();
+    </script>
+</body>
+</html>
